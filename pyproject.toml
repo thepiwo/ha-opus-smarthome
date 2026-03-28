@@ -1,6 +1,6 @@
 [project]
 name = "ha-opus-smarthome"
-version = "0.1.0"
+version = "0.1.1"
 description = "OPUS SmartHome Home Assistant custom integration"
 license = {text = "MIT"}
 authors = [

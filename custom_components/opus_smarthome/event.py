@@ -33,7 +33,13 @@ class OpusDoorbellEvent(OpusBaseEntity, EventEntity):
 
     _attr_device_class = EventDeviceClass.DOORBELL
     _attr_event_types = ["pressed"]
+    _attr_has_entity_name = True
     _attr_name = None  # Use device name directly
+
+    def __init__(self, coordinator: OpusCoordinator, device: Device) -> None:
+        """Initialize the doorbell event."""
+        super().__init__(coordinator, device)
+        self._attr_unique_id = f"{DOMAIN}_{device.device_id}_doorbell"
 
     @callback
     def _handle_coordinator_update(self) -> None:
