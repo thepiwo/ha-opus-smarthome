@@ -18,10 +18,5 @@
     "abort": {
       "already_configured": "This gateway is already configured"
     }
-  },
-  "device_automation": {
-    "trigger_type": {
-      "pressed": "Doorbell pressed"
-    }
   }
 }

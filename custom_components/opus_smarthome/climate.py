@@ -20,6 +20,9 @@ from .const import DOMAIN
 from .coordinator import OpusCoordinator
 from .entity import OpusBaseEntity
 
+MIN_TEMP = 6.0
+MAX_TEMP = 30.0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -43,8 +46,8 @@ class OpusClimate(OpusBaseEntity, ClimateEntity):
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 0.5
-    _attr_min_temp = 6.0
-    _attr_max_temp = 30.0
+    _attr_min_temp = MIN_TEMP
+    _attr_max_temp = MAX_TEMP
     _attr_name = None  # Use device name directly
 
     @property
@@ -67,12 +70,12 @@ class OpusClimate(OpusBaseEntity, ClimateEntity):
 
     @property
     def hvac_mode(self) -> HVACMode:
-        """Return current HVAC mode."""
+        """Return current HVAC mode based on setpoint."""
         device = self.device
         if device is None:
             return HVACMode.OFF
-        mode = device.get_state("heaterMode")
-        if mode == "off":
+        setpoint = device.get_state("temperatureSetpoint")
+        if setpoint is not None and float(setpoint) <= MIN_TEMP:
             return HVACMode.OFF
         return HVACMode.HEAT
 
@@ -96,12 +99,12 @@ class OpusClimate(OpusBaseEntity, ClimateEntity):
             )
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
-        """Set HVAC mode (heat or off)."""
+        """Set HVAC mode by adjusting the setpoint.
+
+        The OPUS gateway does not support setting heaterMode on individual
+        zones. OFF is simulated by setting the setpoint to the minimum.
+        """
         if hvac_mode == HVACMode.OFF:
             await self.coordinator.client.set_state(
-                self._device_id, "heaterMode", "off"
-            )
-        else:
-            await self.coordinator.client.set_state(
-                self._device_id, "heaterMode", "heating"
+                self._device_id, "temperatureSetpoint", MIN_TEMP
             )

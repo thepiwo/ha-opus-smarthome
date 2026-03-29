@@ -118,4 +118,4 @@ class OpusCover(OpusBaseEntity, CoverEntity):
 
     async def async_stop_cover(self, **kwargs: Any) -> None:
         """Stop cover movement."""
-        await self.coordinator.client.set_state(self._device_id, "position", "stop")
+        await self.coordinator.client.set_state(self._device_id, "stop", True)
