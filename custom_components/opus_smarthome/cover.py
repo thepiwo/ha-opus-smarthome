@@ -40,14 +40,20 @@ class OpusCover(OpusBaseEntity, CoverEntity):
     """Representation of an OPUS roller shutter."""
 
     _attr_device_class = CoverDeviceClass.SHUTTER
-    _attr_supported_features = (
+    _base_supported_features = (
         CoverEntityFeature.OPEN
         | CoverEntityFeature.CLOSE
         | CoverEntityFeature.SET_POSITION
-        | CoverEntityFeature.SET_TILT_POSITION
         | CoverEntityFeature.STOP
     )
     _attr_name = None  # Use device name directly
+
+    def __init__(self, coordinator: OpusCoordinator, device: Device) -> None:
+        """Initialize the cover with features derived from device capabilities."""
+        super().__init__(coordinator, device)
+        self._attr_supported_features = self._base_supported_features
+        if device.supports_cover_tilt:
+            self._attr_supported_features |= CoverEntityFeature.SET_TILT_POSITION
 
     @property
     def current_cover_position(self) -> int | None:
@@ -65,7 +71,7 @@ class OpusCover(OpusBaseEntity, CoverEntity):
     def current_cover_tilt_position(self) -> int | None:
         """Return current tilt/angle position."""
         device = self.device
-        if device is None:
+        if device is None or not device.supports_cover_tilt:
             return None
         angle = device.get_state("angle")
         if angle is None or angle == "unknown":
@@ -112,6 +118,9 @@ class OpusCover(OpusBaseEntity, CoverEntity):
 
     async def async_set_cover_tilt_position(self, **kwargs: Any) -> None:
         """Set tilt position."""
+        device = self.device
+        if device is None or not device.supports_cover_tilt:
+            return
         ha_tilt = kwargs[ATTR_TILT_POSITION]
         opus_angle = 100 - ha_tilt
         await self.coordinator.client.set_state(self._device_id, "angle", opus_angle)

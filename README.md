@@ -74,6 +74,7 @@ If the connection drops (e.g. gateway reboot), the integration reconnects automa
 ### Cover (roller shutters / blinds)
 - `cover.<name>` — open/close/stop, set position (0–100 %)
 - Blinds also expose tilt position
+- `number.<name>_rotation_time` — OPUS slat/rotation time in seconds when supported
 
 ### Climate (floor heating)
 - `climate.<name>` — set target temperature, read current temperature
