@@ -48,12 +48,14 @@ class OpusCover(OpusBaseEntity, CoverEntity):
     )
     _attr_name = None  # Use device name directly
 
-    def __init__(self, coordinator: OpusCoordinator, device: Device) -> None:
-        """Initialize the cover with features derived from device capabilities."""
-        super().__init__(coordinator, device)
-        self._attr_supported_features = self._base_supported_features
-        if device.supports_cover_tilt:
-            self._attr_supported_features |= CoverEntityFeature.SET_TILT_POSITION
+    @property
+    def supported_features(self) -> CoverEntityFeature:
+        """Return supported features derived from the current device configuration."""
+        device = self.device
+        features = self._base_supported_features
+        if device is not None and device.supports_cover_tilt:
+            features |= CoverEntityFeature.SET_TILT_POSITION
+        return features
 
     @property
     def current_cover_position(self) -> int | None:
