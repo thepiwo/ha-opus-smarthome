@@ -12,6 +12,7 @@ Built on [`pyopus-smarthome`](https://github.com/thepiwo/pyopus-smarthome), an a
 |---|---|---|
 | Roller shutters / blinds | `cover` | Position control, tilt for blinds |
 | Floor heating (Möhlenhoff) | `climate` | Target temperature, current temp |
+| Floor heating diagnostics (Möhlenhoff EZR) | `sensor`, `binary_sensor`, `number` | Real valve state, emergency mode, pump, boiler relay |
 | Temperature / humidity sensors | `sensor` | °C and % RH |
 | Doorbell | `event` | Push event on ring |
 
@@ -67,6 +68,12 @@ On startup the integration:
 
 If the connection drops (e.g. gateway reboot), the integration reconnects automatically with exponential back-off.
 
+The floor-heating controller (Möhlenhoff Alpha EZR) is found automatically:
+OPUS reports its IP address, and the integration polls the controller's local
+XML API every 60 seconds. Home Assistant must be able to reach that address on
+port 80. If it cannot, the controller entities stay unavailable and everything
+else works as before.
+
 ---
 
 ## Entities Created
@@ -79,6 +86,20 @@ If the connection drops (e.g. gateway reboot), the integration reconnects automa
 ### Climate (floor heating)
 - `climate.<name>` — set target temperature, read current temperature
 - Supports `heat` and `off` HVAC modes
+- `binary_sensor.<name>_sensor_data_missing` — on while OPUS has no current temperature for the zone
+
+### Floor-heating controller (Möhlenhoff EZR)
+
+OPUS's own valve position does not show what the controller actually does. If a
+zone loses its room unit, the controller enters **emergency mode** and drives
+that zone's valves at a fixed duty cycle **regardless of the setpoint**, with the
+pump and boiler relay running. These entities make that visible:
+
+- `sensor.<zone>_valve` — real actuator duty cycle in %
+- `binary_sensor.<zone>_emergency_mode` — on while the controller has lost the zone's room unit (emergency heating starts after the controller's emergency delay)
+- `binary_sensor.<controller>_pump` — circulation pump running
+- `binary_sensor.<controller>_boiler_relay` — boiler relay on
+- `number.<controller>_emergency_heat` — duty cycle used in emergency mode (0 % keeps such zones unheated, which also means no frost protection)
 
 ### Sensor (temperature / humidity)
 - `sensor.<name>_temperature` — current temperature in °C

@@ -5,11 +5,16 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from typing import TYPE_CHECKING
+
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from pyopus_smarthome import OpusClient, OpusStream, Device, Telegram
 
 from .const import DOMAIN
+
+if TYPE_CHECKING:
+    from .ezr import EzrCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +42,7 @@ class OpusCoordinator(DataUpdateCoordinator[dict[str, Device]]):
         self._host = host
         self._eurid = eurid
         self._port = port
+        self.ezr: EzrCoordinator | None = None
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Fetch initial device list from the gateway."""

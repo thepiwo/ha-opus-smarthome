@@ -11,6 +11,7 @@ from pyopus_smarthome import OpusClient
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import OpusCoordinator
+from .ezr import EzrCoordinator, find_ezr_host, find_heat_controller
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: OpusConfigEntry) -> bool
     )
 
     await coordinator.async_config_entry_first_refresh()
+    await _async_setup_ezr(hass, entry, coordinator)
     await coordinator.start_stream()
 
     hass.data.setdefault(DOMAIN, {})
@@ -42,6 +44,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: OpusConfigEntry) -> bool
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
+
+
+async def _async_setup_ezr(
+    hass: HomeAssistant, entry: OpusConfigEntry, coordinator: OpusCoordinator
+) -> None:
+    """Poll the floor-heating controller if OPUS reports one."""
+    controller = find_heat_controller(coordinator.data)
+    host = find_ezr_host(coordinator.data)
+    if controller is None or host is None:
+        return
+
+    ezr = EzrCoordinator(hass, entry, host, controller.device_id)
+    # Entities are created from the OPUS device list, so a controller that is
+    # unreachable right now only leaves them unavailable until the next poll.
+    await ezr.async_refresh()
+    if not ezr.last_update_success:
+        _LOGGER.warning("Heating controller at %s is not reachable yet", host)
+    coordinator.ezr = ezr
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: OpusConfigEntry) -> bool:
