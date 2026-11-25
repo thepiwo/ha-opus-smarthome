@@ -12,6 +12,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from pyopus_smarthome import OpusClient, OpusStream, Device, Telegram
 
 from .const import DOMAIN
+from .offsets import get_temperature_offset, options_with_temperature_offset
 
 if TYPE_CHECKING:
     from .ezr import EzrCoordinator
@@ -31,10 +32,12 @@ class OpusCoordinator(DataUpdateCoordinator[dict[str, Device]]):
         host: str,
         eurid: str,
         port: int,
+        config_entry: ConfigEntry | None = None,
     ) -> None:
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=config_entry,
             name=DOMAIN,
         )
         self.client = client
@@ -43,6 +46,25 @@ class OpusCoordinator(DataUpdateCoordinator[dict[str, Device]]):
         self._eurid = eurid
         self._port = port
         self.ezr: EzrCoordinator | None = None
+
+    def temperature_offset(self, device_id: str) -> float:
+        """Return the temperature offset configured for a heating zone."""
+        if self.config_entry is None:
+            return 0.0
+        return get_temperature_offset(self.config_entry.options, device_id)
+
+    @callback
+    def set_temperature_offset(self, device_id: str, offset: float) -> None:
+        """Store a zone's temperature offset and refresh its entities."""
+        if self.config_entry is None:
+            return
+        self.hass.config_entries.async_update_entry(
+            self.config_entry,
+            options=options_with_temperature_offset(
+                self.config_entry.options, device_id, offset
+            ),
+        )
+        self.async_update_listeners()
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Fetch initial device list from the gateway."""

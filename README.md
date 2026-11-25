@@ -87,6 +87,7 @@ else works as before.
 - `climate.<name>` — set target temperature, read current temperature
 - Supports `heat` and `off` HVAC modes
 - `binary_sensor.<name>_sensor_data_missing` — on while OPUS has no current temperature for the zone
+- `number.<name>_temperature_offset` — correction for the zone's room sensor, −5 to +5 °C (default 0). It is added to the current temperature and to the target shown in Home Assistant, and subtracted from the setpoint sent to OPUS, so the zone regulates on the corrected value. Example: if the sensor reads 0.8 °C too warm, set −0.8; a target of 21 °C is then sent to OPUS as 21.8 °C. The minimum setpoint still means `off`, and an offset never pushes a setpoint onto it. The value is stored in Home Assistant; OPUS and the sensor are not changed. The zone's raw `sensor.<sensor>_temperature` stays uncorrected
 
 ### Floor-heating controller (Möhlenhoff EZR)
 

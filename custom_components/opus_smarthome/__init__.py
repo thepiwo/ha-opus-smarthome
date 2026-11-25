@@ -32,6 +32,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: OpusConfigEntry) -> bool
         host=entry.data[CONF_HOST],
         eurid=entry.data["eurid"],
         port=entry.data[CONF_PORT],
+        config_entry=entry,
     )
 
     await coordinator.async_config_entry_first_refresh()

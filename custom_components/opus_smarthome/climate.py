@@ -57,7 +57,9 @@ class OpusClimate(OpusBaseEntity, ClimateEntity):
         if device is None:
             return None
         temp = device.get_state("temperature")
-        return float(temp) if temp is not None else None
+        if temp is None:
+            return None
+        return round(float(temp) + self._offset, 2)
 
     @property
     def target_temperature(self) -> float | None:
@@ -66,7 +68,13 @@ class OpusClimate(OpusBaseEntity, ClimateEntity):
         if device is None:
             return None
         setpoint = device.get_state("temperatureSetpoint")
-        return float(setpoint) if setpoint is not None else None
+        if setpoint is None:
+            return None
+        setpoint = float(setpoint)
+        if setpoint <= MIN_TEMP:
+            # OFF is the minimum setpoint; showing it shifted would hide that.
+            return setpoint
+        return round(setpoint + self._offset, 2)
 
     @property
     def hvac_mode(self) -> HVACMode:
@@ -95,8 +103,25 @@ class OpusClimate(OpusBaseEntity, ClimateEntity):
         temp = kwargs.get(ATTR_TEMPERATURE)
         if temp is not None:
             await self.coordinator.client.set_state(
-                self._device_id, "temperatureSetpoint", temp
+                self._device_id, "temperatureSetpoint", self._gateway_setpoint(temp)
             )
+
+    @property
+    def _offset(self) -> float:
+        """Correction added to the gateway's room temperature."""
+        return self.coordinator.temperature_offset(self._device_id)
+
+    def _gateway_setpoint(self, temp: float) -> float:
+        """Translate a corrected setpoint back to the gateway's scale.
+
+        The minimum stays the minimum (it means OFF), and a shifted setpoint
+        never drops onto it, so an offset cannot switch a zone off by itself.
+        """
+        temp = float(temp)
+        if temp <= MIN_TEMP:
+            return MIN_TEMP
+        setpoint = round(temp - self._offset, 1)
+        return min(max(setpoint, MIN_TEMP + self._attr_target_temperature_step), MAX_TEMP)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set HVAC mode by adjusting the setpoint.
